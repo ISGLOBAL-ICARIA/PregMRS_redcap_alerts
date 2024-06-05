@@ -3,6 +3,6 @@ LOGIC_FIELDS = [
     'newborn_study_number','fu_status',
 ]
 
-type_dict = {'1.0': 'PW',
-             '2.0': 'PPM'
+type_dict = {'1': 'PW',
+             '2': 'PPM'
              }

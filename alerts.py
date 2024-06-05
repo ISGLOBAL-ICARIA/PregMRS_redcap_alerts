@@ -4,7 +4,6 @@ import params
 
 def pregmrs_alert(project):
     """
-
     :param project_key: Project ID
     :return:
     """
@@ -22,12 +21,21 @@ def pregmrs_alert(project):
     to_be_alert = ppw_res[ppw_res['record_id'].isin(df_records)][['record_id','study_number','pmrs_date']]
 
     to_be_alert[['pmrs_date']] = to_be_alert[['pmrs_date']].apply(pd.to_datetime)
-
-    alerts1 = to_be_alert[((datetime.today() - to_be_alert['pmrs_date']).dt.days <=4)]
-    alerts2 = to_be_alert[((datetime.today() - to_be_alert['pmrs_date']).dt.days <=9)&((datetime.today() - to_be_alert['pmrs_date']).dt.days >4)]
-    alerts3 = to_be_alert[((datetime.today() - to_be_alert['pmrs_date']).dt.days >9)]
+    try:
+        alerts1 = to_be_alert[((datetime.today() - to_be_alert['pmrs_date']).dt.days <=4)]
+    except:
+        alerts1 = pd.DataFrame(columns=['record_id','study_number','pmrs_date'])
+    try:
+        alerts2 = to_be_alert[((datetime.today() - to_be_alert['pmrs_date']).dt.days <=9)&((datetime.today() - to_be_alert['pmrs_date']).dt.days >4)]
+    except:
+        alerts2 = pd.DataFrame(columns=['record_id','study_number','pmrs_date'])
+    try:
+        alerts3 = to_be_alert[((datetime.today() - to_be_alert['pmrs_date']).dt.days >9)]
+    except:
+        alerts3 = pd.DataFrame(columns=['record_id','study_number','pmrs_date'])
 
     all_records = df.index.get_level_values('record_id')
+    print(all_records)
     completed_records = all_records.difference(alerts1['record_id'])
     completed_records = completed_records.difference(alerts2['record_id'])
     completed_records = completed_records.difference(alerts3['record_id'])
@@ -45,8 +53,10 @@ def build_pregmrs_alert(df, completed_records,alerts1, alerts2, alerts3):
     data_to_import = pd.DataFrame(columns=['fu_status'])
 
     for el in completed_records:
+        print(el)
         sn = dfres[(dfres['record_id']==el)&(dfres['redcap_event_name']=='pregmrs_arm_1')]['study_number'].values[0]
         ty = dfres[(dfres['record_id']==el)&(dfres['redcap_event_name']=='pregmrs_arm_1')]['pmrs_study_group'].values[0]
+        print(sn,ty)
         type = params.type_dict[str(ty)]
 
         if type == 'PPM':
