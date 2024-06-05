@@ -1,34 +1,22 @@
-from datetime import datetime, date
-from datetime import timedelta
-
+from datetime import datetime
 import pandas as pd
-from pandas import IndexSlice as idx
-
-from dateutil.relativedelta import relativedelta
-import math
-import numpy as np
-import pandas
-import redcap
 import params
-import tokens
 
+def pregmrs_alert(project):
+    """
 
-def pregmrs_alert(project_key):
-    project = redcap.Project(tokens.URL, tokens.PREGMRS_REDCAP_PROJECTS[project_key])
-
-    # Get all records for each ICARIA REDCap project (TRIAL)
-    print("\n[{}] Getting records from the ICARIA TRIAL REDCap projects:".format(datetime.now()))
-    print("[{}] Getting all records from {}...".format(datetime.now(),project_key))
+    :param project_key: Project ID
+    :return:
+    """
+    print("\n[{}] Getting records from the PREG-MRS REDCap project:".format(datetime.now()))
 
     df = project.export_records(format='df', fields=params.LOGIC_FIELDS)
-    print(df)
-
     newborns = df[df['newborn_date'].notna()]
     postpartum_woman = df[df['pmrs_study_group']==2]
 
     df_records = postpartum_woman.index.get_level_values('record_id').difference(newborns.index.get_level_values('record_id'))
-    print(df_records)
-    print(postpartum_woman)
+    #print(df_records)
+    #print(postpartum_woman)
 
     ppw_res = postpartum_woman.reset_index()
     to_be_alert = ppw_res[ppw_res['record_id'].isin(df_records)][['record_id','study_number','pmrs_date']]
@@ -44,18 +32,17 @@ def pregmrs_alert(project_key):
     completed_records = completed_records.difference(alerts2['record_id'])
     completed_records = completed_records.difference(alerts3['record_id'])
 
-    to_import_dict = []
-    to_import_df = build_pregmrs_alert(df,completed_records,alerts1['record_id'].values,alerts2['record_id'].values,alerts3['record_id'].values,to_import_dict)
+    to_import_df = build_pregmrs_alert(df,completed_records,alerts1['record_id'].values,alerts2['record_id'].values,alerts3['record_id'].values)
     to_import_dict = [{'record_id': rec_id, 'fu_status': participant.fu_status}
                       for rec_id, participant in to_import_df.iterrows()]
-    print(to_import_dict)
+    #print(to_import_dict)
     response = project.import_records((to_import_dict))
     print("[PREG-MRS] Alerts setup: {}".format(response.get('count')))
 
-def build_pregmrs_alert(df, completed_records,alerts1, alerts2, alerts3,to_import_dict):
+def build_pregmrs_alert(df, completed_records,alerts1, alerts2, alerts3):
 
     dfres = df.reset_index()
-    data_to_import = pandas.DataFrame(columns=['fu_status'])
+    data_to_import = pd.DataFrame(columns=['fu_status'])
 
     for el in completed_records:
         sn = dfres[(dfres['record_id']==el)&(dfres['redcap_event_name']=='pregmrs_arm_1')]['study_number'].values[0]
@@ -72,7 +59,6 @@ def build_pregmrs_alert(df, completed_records,alerts1, alerts2, alerts3,to_impor
             status = '- COMPLETED'
         final_status = "["+str(sn)+"] "+str(type)+ " "+ status
         data_to_import.loc[el] = final_status
-        to_import_dict.append({'record_id': el, 'fu_status':final_status})
 
     for el in alerts1:
         sn = dfres[(dfres['record_id']==el)&(dfres['redcap_event_name']=='pregmrs_arm_1')]['study_number'].values[0]
@@ -86,7 +72,6 @@ def build_pregmrs_alert(df, completed_records,alerts1, alerts2, alerts3,to_impor
             status = '???'
         final_status = "["+str(sn)+"] "+str(type)+ " "+ status
         data_to_import.loc[el] = final_status
-        to_import_dict.append({'record_id': el, 'fu_status':final_status})
 
     for el in alerts2:
         sn = dfres[(dfres['record_id']==el)&(dfres['redcap_event_name']=='pregmrs_arm_1')]['study_number'].values[0]
@@ -100,7 +85,6 @@ def build_pregmrs_alert(df, completed_records,alerts1, alerts2, alerts3,to_impor
             status = '???'
         final_status = "["+str(sn)+"] "+str(type)+ " "+ status
         data_to_import.loc[el] = final_status
-        to_import_dict.append({'record_id': el, 'fu_status':final_status})
 
     for el in alerts3:
         sn = dfres[(dfres['record_id']==el)&(dfres['redcap_event_name']=='pregmrs_arm_1')]['study_number'].values[0]
@@ -114,7 +98,5 @@ def build_pregmrs_alert(df, completed_records,alerts1, alerts2, alerts3,to_impor
             status = '???'
         final_status = "["+str(sn)+"] "+str(type)+ " "+ status
         data_to_import.loc[el] = final_status
-        to_import_dict.append({'record_id': el, 'fu_status':final_status})
-    print(data_to_import)
+    #print(data_to_import)
     return data_to_import
-    return to_import_dict
