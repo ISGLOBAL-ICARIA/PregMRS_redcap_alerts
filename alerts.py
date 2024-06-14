@@ -57,7 +57,7 @@ def build_pregmrs_alert(df, completed_records,alerts1, alerts2, alerts3):
         sn = dfres[(dfres['record_id']==el)&(dfres['redcap_event_name']=='pregmrs_arm_1')]['study_number'].values[0]
         ty = dfres[(dfres['record_id']==el)&(dfres['redcap_event_name']=='pregmrs_arm_1')]['pmrs_study_group'].values[0]
         print(sn,ty)
-        type = params.type_dict[str(ty)]
+        type = params.type_dict[int(ty)]
 
         if type == 'PPM':
             nb_date = dfres[(dfres['record_id'] == el) & (dfres['redcap_event_name'] == 'newborn_arm_1')]['newborn_date'].values[0]
@@ -67,46 +67,64 @@ def build_pregmrs_alert(df, completed_records,alerts1, alerts2, alerts3):
                 status = ''
         else:
             status = '- COMPLETED'
-        final_status = "["+str(sn)+"] "+str(type)+ " "+ status
+        final_status = str(type)+ " "+ status
         data_to_import.loc[el] = final_status
 
     for el in alerts1:
         sn = dfres[(dfres['record_id']==el)&(dfres['redcap_event_name']=='pregmrs_arm_1')]['study_number'].values[0]
         ty = dfres[(dfres['record_id']==el)&(dfres['redcap_event_name']=='pregmrs_arm_1')]['pmrs_study_group'].values[0]
-        type = params.type_dict[str(ty)]
+        type = params.type_dict[int(ty)]
 
         if type == 'PPM':
             status = '- APPOINTMENT'
         else:
             print('WHAT?')
             status = '???'
-        final_status = "["+str(sn)+"] "+str(type)+ " "+ status
+        final_status = str(type)+ " "+ status
         data_to_import.loc[el] = final_status
 
     for el in alerts2:
         sn = dfres[(dfres['record_id']==el)&(dfres['redcap_event_name']=='pregmrs_arm_1')]['study_number'].values[0]
         ty = dfres[(dfres['record_id']==el)&(dfres['redcap_event_name']=='pregmrs_arm_1')]['pmrs_study_group'].values[0]
-        type = params.type_dict[str(ty)]
+        type = params.type_dict[int(ty)]
 
         if type == 'PPM':
             status = '- TO BE VISITED'
         else:
             print('WHAT?')
             status = '???'
-        final_status = "["+str(sn)+"] "+str(type)+ " "+ status
+        final_status = str(type)+ " "+ status
         data_to_import.loc[el] = final_status
 
     for el in alerts3:
         sn = dfres[(dfres['record_id']==el)&(dfres['redcap_event_name']=='pregmrs_arm_1')]['study_number'].values[0]
         ty = dfres[(dfres['record_id']==el)&(dfres['redcap_event_name']=='pregmrs_arm_1')]['pmrs_study_group'].values[0]
-        type = params.type_dict[str(ty)]
+        type = params.type_dict[int(ty)]
 
         if type == 'PPM':
             status = '- UNREACH'
         else:
             print('WHAT?')
             status = '???'
-        final_status = "["+str(sn)+"] "+str(type)+ " "+ status
+        final_status = str(type)+ " "+ status
         data_to_import.loc[el] = final_status
     #print(data_to_import)
     return data_to_import
+
+
+def sn_cleaning(project, field_='study_number',event='pregmrs_arm_1'):
+    df_all = project.export_records(format='df', fields=params.LOGIC_FIELDS)
+    df = df_all.xs(event,level=1,drop_level=False)
+    #print(df[[field_]])
+    data_to_import = pd.DataFrame(columns=[field_])
+
+    for k,el in df[[field_]].T.items():
+        if str(el[field_])[0] == '':
+            #print(el[0][1:])
+            data_to_import.loc[k[0]] = el[0][1:]
+        #else:
+            #print(k[0],str(el[field_])+"!!!!!!!!!!!!!!!!!!!!")
+    to_import_dict = [{'record_id': rec_id, field_: participant[field_]}
+                      for rec_id, participant in data_to_import.iterrows()]
+    response = project.import_records((to_import_dict))
+    print("[PREG-MRS] "+field_ +" CORRECTIONS: {}".format(response.get('count')))
