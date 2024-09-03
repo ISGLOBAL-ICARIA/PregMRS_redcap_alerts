@@ -35,7 +35,7 @@ def pregmrs_alert(project):
         alerts3 = pd.DataFrame(columns=['record_id','study_number','pmrs_date'])
 
     all_records = df.index.get_level_values('record_id')
-    print(all_records)
+    #print(all_records)
     completed_records = all_records.difference(alerts1['record_id'])
     completed_records = completed_records.difference(alerts2['record_id'])
     completed_records = completed_records.difference(alerts3['record_id'])
@@ -53,10 +53,10 @@ def build_pregmrs_alert(df, completed_records,alerts1, alerts2, alerts3):
     data_to_import = pd.DataFrame(columns=['fu_status'])
 
     for el in completed_records:
-        print(el)
+        #print(el)
         sn = dfres[(dfres['record_id']==el)&(dfres['redcap_event_name']=='pregmrs_arm_1')]['study_number'].values[0]
         ty = dfres[(dfres['record_id']==el)&(dfres['redcap_event_name']=='pregmrs_arm_1')]['pmrs_study_group'].values[0]
-        print(sn,ty)
+        #print(sn,ty)
         type = params.type_dict[int(ty)]
 
         if type == 'PPM':
@@ -138,7 +138,7 @@ def duplicates(project):
     for k,el in repeated.T.items():
         if el[0] != 1:
             s+= 1
-            print(k,el[0])
+            #print(k,el[0])
 
     if s == 0:
         print("END: There is no repeated participant to clean.")
