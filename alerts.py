@@ -9,7 +9,7 @@ def pregmrs_alert(project):
     """
     print("\n[{}] Getting records from the PREG-MRS REDCap project:".format(datetime.now()))
 
-    df = project.export_records(format='df', fields=params.LOGIC_FIELDS)
+    df = project.export_records(format_type='df', fields=params.LOGIC_FIELDS)
     newborns = df[df['newborn_date'].notna()]
     postpartum_woman = df[df['pmrs_study_group']==2]
 
@@ -113,7 +113,7 @@ def build_pregmrs_alert(df, completed_records,alerts1, alerts2, alerts3):
 
 
 def sn_cleaning(project, field_='study_number',event='pregmrs_arm_1'):
-    df_all = project.export_records(format='df', fields=params.LOGIC_FIELDS)
+    df_all = project.export_records(format_type='df', fields=params.LOGIC_FIELDS)
     df = df_all.xs(event,level=1,drop_level=False)
     #print(df[[field_]])
     data_to_import = pd.DataFrame(columns=[field_])
@@ -128,3 +128,17 @@ def sn_cleaning(project, field_='study_number',event='pregmrs_arm_1'):
                       for rec_id, participant in data_to_import.iterrows()]
     response = project.import_records((to_import_dict))
     print("[PREG-MRS] "+field_ +" CORRECTIONS: {}".format(response.get('count')))
+
+def duplicates(project):
+    df_all = project.export_records(format_type='df', fields=params.LOGIC_FIELDS)
+    df = df_all.xs('pregmrs_arm_1',level=1,drop_level=False)
+
+    repeated = df.groupby('study_number').count()[['pmrs_date']].sort_values('pmrs_date')
+    s = 0
+    for k,el in repeated.T.items():
+        if el[0] != 1:
+            s+= 1
+            print(k,el[0])
+
+    if s == 0:
+        print("END: There is no repeated participant to clean.")
